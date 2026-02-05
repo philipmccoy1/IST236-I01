@@ -20,3 +20,5 @@ const responses = [
     "Outlook not so good",
     "Very doubtful"
   ];
+
+export default responses;
