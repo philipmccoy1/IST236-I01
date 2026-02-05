@@ -40,7 +40,7 @@ export default function App() {
 
           <TextInput
             style={styles.input}
-            placeholder="e.g., Will I pass my test?"
+            placeholder="e.g., Is Mrs. Timmons the best?"
             placeholderTextColor="#94a3b8"
             value={question}
             onChangeText={setQuestion}
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
