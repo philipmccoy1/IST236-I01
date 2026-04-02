@@ -29,7 +29,7 @@ export const NEWS = [
     'Sophia Brooks',
     'ABC News',
     'Federal officials announced a new round of education grants intended to expand workforce training and certificate programs at community colleges.',
-    'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1200&q=80'
+    'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=80'
   ),
   new News(
     'n4',
