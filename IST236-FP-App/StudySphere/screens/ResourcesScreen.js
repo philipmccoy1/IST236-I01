@@ -8,52 +8,94 @@ import {
   FlatList,
   Linking,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Colors from '../constants/colors';
 import { ThemeContext } from '../context/ThemeContext';
-
-const starterResources = [
-  { id: '1', title: 'Khan Academy', url: 'https://www.khanacademy.org' },
-  { id: '2', title: 'Quizlet', url: 'https://quizlet.com' },
-  { id: '3', title: 'MDN Web Docs', url: 'https://developer.mozilla.org' },
-];
+import { AppDataContext } from '../context/AppDataContext';
 
 export default function ResourcesScreen() {
   const { themeColors } = useContext(ThemeContext);
+  const { resources, addResource, editResource, deleteResource } = useContext(AppDataContext);
 
   const [resourceTitle, setResourceTitle] = useState('');
   const [resourceUrl, setResourceUrl] = useState('');
-  const [resources, setResources] = useState(starterResources);
 
-  function addResource() {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedResourceId, setSelectedResourceId] = useState(null);
+  const [editedTitle, setEditedTitle] = useState('');
+  const [editedUrl, setEditedUrl] = useState('');
+
+  function isValidUrl(url) {
+    return url.startsWith('http://') || url.startsWith('https://');
+  }
+
+  function handleAddResource() {
     if (!resourceTitle.trim() || !resourceUrl.trim()) {
       Alert.alert('Missing Information', 'Please enter both a title and a URL.');
       return;
     }
 
-    if (
-      !resourceUrl.trim().startsWith('http://') &&
-      !resourceUrl.trim().startsWith('https://')
-    ) {
+    if (!isValidUrl(resourceUrl.trim())) {
       Alert.alert('Invalid URL', 'Please start the link with http:// or https://');
       return;
     }
 
-    const newResource = {
-      id: Date.now().toString(),
-      title: resourceTitle.trim(),
-      url: resourceUrl.trim(),
-    };
-
-    setResources((currentResources) => [newResource, ...currentResources]);
+    addResource(resourceTitle, resourceUrl);
     setResourceTitle('');
     setResourceUrl('');
   }
 
+  function openEditModal(resource) {
+    setSelectedResourceId(resource.id);
+    setEditedTitle(resource.title);
+    setEditedUrl(resource.url);
+    setModalVisible(true);
+  }
+
+  function closeModal() {
+    setModalVisible(false);
+    setSelectedResourceId(null);
+    setEditedTitle('');
+    setEditedUrl('');
+  }
+
+  function saveEdit() {
+    if (!editedTitle.trim() || !editedUrl.trim()) {
+      Alert.alert('Missing Information', 'Please enter both a title and a URL.');
+      return;
+    }
+
+    if (!isValidUrl(editedUrl.trim())) {
+      Alert.alert('Invalid URL', 'Please start the link with http:// or https://');
+      return;
+    }
+
+    editResource(selectedResourceId, editedTitle, editedUrl);
+    closeModal();
+  }
+
+  function confirmDeleteResource(id) {
+    Alert.alert('Delete Resource', 'Are you sure you want to delete this resource?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => deleteResource(id),
+      },
+    ]);
+  }
+
   async function openLink(url) {
     try {
+      const supported = await Linking.canOpenURL(url);
+
+      if (!supported) {
+        Alert.alert('Link Error', 'Could not open this resource.');
+        return;
+      }
+
       await Linking.openURL(url);
     } catch (error) {
       Alert.alert('Link Error', 'Could not open this resource.');
@@ -64,14 +106,37 @@ export default function ResourcesScreen() {
     return (
       <View style={[styles.resourceCard, { backgroundColor: themeColors.card }]}>
         <View style={styles.resourceInfo}>
-          <Text style={[styles.resourceTitle, { color: themeColors.text }]}>{item.title}</Text>
-          <Text style={[styles.resourceUrl, { color: themeColors.lightText }]}>{item.url}</Text>
+          <Text style={[styles.resourceTitle, { color: themeColors.text }]}>
+            {item.title}
+          </Text>
+          <Text style={[styles.resourceUrl, { color: themeColors.lightText }]}>
+            {item.url}
+          </Text>
         </View>
 
-        <Pressable style={styles.openButton} onPress={() => openLink(item.url)}>
-          <Ionicons name="open-outline" size={18} color={Colors.white} />
-          <Text style={styles.openButtonText}>Open</Text>
-        </Pressable>
+        <View style={styles.resourceButtons}>
+          <Pressable
+            style={[styles.actionButton, { backgroundColor: themeColors.secondary }]}
+            onPress={() => openLink(item.url)}
+          >
+            <Ionicons name="open-outline" size={18} color={themeColors.white} />
+            <Text style={styles.actionButtonText}>Open</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.iconButton, { backgroundColor: themeColors.primary }]}
+            onPress={() => openEditModal(item)}
+          >
+            <Ionicons name="create-outline" size={18} color={themeColors.white} />
+          </Pressable>
+
+          <Pressable
+            style={[styles.iconButton, { backgroundColor: themeColors.danger }]}
+            onPress={() => confirmDeleteResource(item.id)}
+          >
+            <Ionicons name="trash-outline" size={18} color={themeColors.white} />
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -114,7 +179,10 @@ export default function ResourcesScreen() {
             autoCapitalize="none"
           />
 
-          <Pressable style={styles.addButton} onPress={addResource}>
+          <Pressable
+            style={[styles.addButton, { backgroundColor: themeColors.primary }]}
+            onPress={handleAddResource}
+          >
             <Text style={styles.addButtonText}>Add Resource</Text>
           </Pressable>
         </View>
@@ -125,7 +193,67 @@ export default function ResourcesScreen() {
           renderItem={renderResource}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <Text style={[styles.emptyText, { color: themeColors.lightText }]}>
+              No resources yet. Add your first one above.
+            </Text>
+          }
         />
+
+        <Modal visible={modalVisible} animationType="slide" transparent>
+          <View style={[styles.modalOverlay, { backgroundColor: themeColors.overlay }]}>
+            <View style={[styles.modalCard, { backgroundColor: themeColors.card }]}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+                Edit Resource
+              </Text>
+
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: themeColors.input,
+                    color: themeColors.text,
+                  },
+                ]}
+                placeholder="Resource title"
+                value={editedTitle}
+                onChangeText={setEditedTitle}
+                placeholderTextColor={themeColors.lightText}
+              />
+
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: themeColors.input,
+                    color: themeColors.text,
+                  },
+                ]}
+                placeholder="https://example.com"
+                value={editedUrl}
+                onChangeText={setEditedUrl}
+                placeholderTextColor={themeColors.lightText}
+                autoCapitalize="none"
+              />
+
+              <View style={styles.modalButtons}>
+                <Pressable
+                  style={[styles.modalButton, { backgroundColor: themeColors.inactive }]}
+                  onPress={closeModal}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </Pressable>
+
+                <Pressable
+                  style={[styles.modalButton, { backgroundColor: themeColors.primary }]}
+                  onPress={saveEdit}
+                >
+                  <Text style={styles.modalButtonText}>Save</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -163,14 +291,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   addButton: {
-    backgroundColor: Colors.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
   addButtonText: {
     fontFamily: 'poppins-bold',
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 15,
   },
   listContent: {
@@ -193,18 +320,64 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 6,
   },
-  openButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.info,
+  resourceButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  actionButton: {
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  openButtonText: {
+  actionButtonText: {
     fontFamily: 'poppins-bold',
-    color: Colors.white,
+    color: '#FFFFFF',
     marginLeft: 6,
+  },
+  iconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontFamily: 'poppins-regular',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    borderRadius: 20,
+    padding: 20,
+  },
+  modalTitle: {
+    fontFamily: 'poppins-bold',
+    fontSize: 20,
+    marginBottom: 14,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  modalButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    fontFamily: 'poppins-bold',
+    color: '#FFFFFF',
   },
 });

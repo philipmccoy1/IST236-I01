@@ -10,22 +10,26 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Colors from '../constants/colors';
 import { ThemeContext } from '../context/ThemeContext';
+import { AppDataContext } from '../context/AppDataContext';
 
 export default function HomeScreen({ navigation }) {
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 768;
   const { themeColors } = useContext(ThemeContext);
+  const { stats, tasks } = useContext(AppDataContext);
 
   const summaryCards = useMemo(
     () => [
-      { id: '1', label: 'Tasks Due', value: '3', icon: 'checkbox-outline' },
-      { id: '2', label: 'Completed', value: '5', icon: 'checkmark-done-outline' },
-      { id: '3', label: 'Focus Minutes', value: '75', icon: 'timer-outline' },
+      { id: '1', label: 'Tasks Left', value: String(stats.incompleteTasks), icon: 'checkbox-outline' },
+      { id: '2', label: 'Completed', value: String(stats.completedTasks), icon: 'checkmark-done-outline' },
+      { id: '3', label: 'Focus Minutes', value: String(stats.totalFocusMinutes), icon: 'timer-outline' },
+      { id: '4', label: 'Resources', value: String(stats.totalResources), icon: 'book-outline' },
     ],
-    []
+    [stats]
   );
+
+  const recentTasks = tasks.slice(0, 3);
 
   const quickLinks = [
     { id: '1', title: 'Go to Tasks', icon: 'list', screen: 'Tasks' },
@@ -37,7 +41,10 @@ export default function HomeScreen({ navigation }) {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.hero}>
+        <LinearGradient
+          colors={[themeColors.primary, themeColors.secondary]}
+          style={styles.hero}
+        >
           <Text style={styles.heroTitle}>Welcome back</Text>
           <Text style={styles.heroSubtitle}>
             Stay on top of school with your tasks, timer, and study resources in one place.
@@ -45,7 +52,9 @@ export default function HomeScreen({ navigation }) {
         </LinearGradient>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Today&apos;s Overview</Text>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+            Today&apos;s Overview
+          </Text>
 
           <View style={styles.cardRow}>
             {summaryCards.map((item) => (
@@ -54,36 +63,85 @@ export default function HomeScreen({ navigation }) {
                 style={[
                   styles.summaryCard,
                   {
-                    width: isLargeScreen ? '31%' : '100%',
+                    width: isLargeScreen ? '48%' : '100%',
                     backgroundColor: themeColors.card,
                   },
                 ]}
               >
-                <Ionicons name={item.icon} size={28} color={Colors.primary} />
-                <Text style={[styles.summaryValue, { color: themeColors.text }]}>{item.value}</Text>
-                <Text style={[styles.summaryLabel, { color: themeColors.lightText }]}>{item.label}</Text>
+                <Ionicons name={item.icon} size={28} color={themeColors.primary} />
+                <Text style={[styles.summaryValue, { color: themeColors.text }]}>
+                  {item.value}
+                </Text>
+                <Text style={[styles.summaryLabel, { color: themeColors.lightText }]}>
+                  {item.label}
+                </Text>
               </View>
             ))}
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Quick Actions</Text>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+            Quick Actions
+          </Text>
 
           {quickLinks.map((item) => (
             <Pressable
               key={item.id}
-              style={styles.actionButton}
+              style={[styles.actionButton, { backgroundColor: themeColors.primary }]}
               onPress={() => navigation.navigate(item.screen)}
             >
               <View style={styles.actionLeft}>
-                <Ionicons name={item.icon} size={22} color={Colors.white} />
+                <Ionicons name={item.icon} size={22} color={themeColors.white} />
                 <Text style={styles.actionText}>{item.title}</Text>
               </View>
 
-              <Ionicons name="chevron-forward" size={20} color={Colors.white} />
+              <Ionicons name="chevron-forward" size={20} color={themeColors.white} />
             </Pressable>
           ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
+            Recent Tasks
+          </Text>
+
+          {recentTasks.length === 0 ? (
+            <View style={[styles.recentCard, { backgroundColor: themeColors.card }]}>
+              <Text style={[styles.emptyText, { color: themeColors.lightText }]}>
+                No tasks yet. Go to the Tasks screen to add one.
+              </Text>
+            </View>
+          ) : (
+            recentTasks.map((item) => (
+              <View
+                key={item.id}
+                style={[styles.recentCard, { backgroundColor: themeColors.card }]}
+              >
+                <View style={styles.recentLeft}>
+                  <Ionicons
+                    name={item.completed ? 'checkbox' : 'square-outline'}
+                    size={24}
+                    color={item.completed ? themeColors.success : themeColors.primary}
+                  />
+                  <View style={styles.recentTextWrap}>
+                    <Text
+                      style={[
+                        styles.recentTitle,
+                        { color: themeColors.text },
+                        item.completed && styles.completedText,
+                      ]}
+                    >
+                      {item.title}
+                    </Text>
+                    <Text style={[styles.recentCourse, { color: themeColors.lightText }]}>
+                      {item.course}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -106,13 +164,13 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontFamily: 'poppins-bold',
     fontSize: 28,
-    color: Colors.white,
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   heroSubtitle: {
     fontFamily: 'poppins-regular',
     fontSize: 15,
-    color: Colors.white,
+    color: '#FFFFFF',
     lineHeight: 22,
   },
   section: {
@@ -145,7 +203,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   actionButton: {
-    backgroundColor: Colors.primary,
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 18,
@@ -161,7 +218,37 @@ const styles = StyleSheet.create({
   actionText: {
     fontFamily: 'poppins-bold',
     fontSize: 15,
-    color: Colors.white,
+    color: '#FFFFFF',
     marginLeft: 10,
+  },
+  recentCard: {
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+  },
+  recentLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  recentTextWrap: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  recentTitle: {
+    fontFamily: 'poppins-bold',
+    fontSize: 15,
+  },
+  recentCourse: {
+    fontFamily: 'poppins-regular',
+    fontSize: 13,
+    marginTop: 4,
+  },
+  completedText: {
+    textDecorationLine: 'line-through',
+  },
+  emptyText: {
+    fontFamily: 'poppins-regular',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

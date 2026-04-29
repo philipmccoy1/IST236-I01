@@ -1,11 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Colors from '../constants/colors';
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function SplashScreen({ navigation }) {
+  const { themeColors } = useContext(ThemeContext);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       navigation.replace('MainTabs');
@@ -15,10 +17,13 @@ export default function SplashScreen({ navigation }) {
   }, [navigation]);
 
   return (
-    <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.container}>
+    <LinearGradient
+      colors={[themeColors.primary, themeColors.secondary]}
+      style={styles.container}
+    >
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.logoCircle}>
-          <Ionicons name="school" size={58} color={Colors.white} />
+          <Ionicons name="school" size={58} color={themeColors.white} />
         </View>
 
         <Text style={styles.title}>StudySphere</Text>
@@ -50,13 +55,13 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'poppins-bold',
     fontSize: 32,
-    color: Colors.white,
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   subtitle: {
     fontFamily: 'poppins-regular',
     fontSize: 16,
-    color: Colors.white,
+    color: '#FFFFFF',
     opacity: 0.95,
   },
 });

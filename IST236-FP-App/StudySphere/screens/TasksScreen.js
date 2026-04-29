@@ -11,51 +11,30 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Colors from '../constants/colors';
 import { ThemeContext } from '../context/ThemeContext';
-
-const starterTasks = [
-  { id: '1', title: 'Finish discussion post', course: 'IST 236', completed: false },
-  { id: '2', title: 'Review React Navigation', course: 'Mobile Apps', completed: true },
-  { id: '3', title: 'Study for quiz', course: 'Web Development', completed: false },
-];
+import { AppDataContext } from '../context/AppDataContext';
 
 export default function TasksScreen() {
   const { themeColors } = useContext(ThemeContext);
+  const { tasks, addTask, editTask, deleteTask, toggleTask } = useContext(AppDataContext);
 
   const [taskTitle, setTaskTitle] = useState('');
   const [course, setCourse] = useState('');
-  const [tasks, setTasks] = useState(starterTasks);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [editedTitle, setEditedTitle] = useState('');
   const [editedCourse, setEditedCourse] = useState('');
 
-  function addTask() {
+  function handleAddTask() {
     if (!taskTitle.trim() || !course.trim()) {
       Alert.alert('Missing Information', 'Please enter both a task title and a course name.');
       return;
     }
 
-    const newTask = {
-      id: Date.now().toString(),
-      title: taskTitle.trim(),
-      course: course.trim(),
-      completed: false,
-    };
-
-    setTasks((currentTasks) => [newTask, ...currentTasks]);
+    addTask(taskTitle, course);
     setTaskTitle('');
     setCourse('');
-  }
-
-  function toggleTask(id) {
-    setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    );
   }
 
   function openEditModal(task) {
@@ -65,35 +44,30 @@ export default function TasksScreen() {
     setModalVisible(true);
   }
 
-  function saveEdit() {
-    if (!editedTitle.trim() || !editedCourse.trim()) {
-      Alert.alert('Missing Information', 'Please fill in both edit fields before saving.');
-      return;
-    }
-
-    setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task.id === selectedTaskId
-          ? { ...task, title: editedTitle.trim(), course: editedCourse.trim() }
-          : task
-      )
-    );
-
+  function closeModal() {
     setModalVisible(false);
     setSelectedTaskId(null);
     setEditedTitle('');
     setEditedCourse('');
   }
 
-  function deleteTask(id) {
+  function saveEdit() {
+    if (!editedTitle.trim() || !editedCourse.trim()) {
+      Alert.alert('Missing Information', 'Please fill in both edit fields before saving.');
+      return;
+    }
+
+    editTask(selectedTaskId, editedTitle, editedCourse);
+    closeModal();
+  }
+
+  function confirmDeleteTask(id) {
     Alert.alert('Delete Task', 'Are you sure you want to delete this task?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
-          setTasks((currentTasks) => currentTasks.filter((task) => task.id !== id));
-        },
+        onPress: () => deleteTask(id),
       },
     ]);
   }
@@ -105,7 +79,7 @@ export default function TasksScreen() {
           <Ionicons
             name={item.completed ? 'checkbox' : 'square-outline'}
             size={28}
-            color={item.completed ? Colors.accent : Colors.primary}
+            color={item.completed ? themeColors.success : themeColors.primary}
           />
         </Pressable>
 
@@ -115,24 +89,28 @@ export default function TasksScreen() {
               styles.taskTitle,
               { color: themeColors.text },
               item.completed && styles.completedText,
-              item.completed && { color: themeColors.lightText },
             ]}
           >
             {item.title}
           </Text>
-          <Text style={[styles.taskCourse, { color: themeColors.lightText }]}>{item.course}</Text>
+          <Text style={[styles.taskCourse, { color: themeColors.lightText }]}>
+            {item.course}
+          </Text>
         </View>
 
         <View style={styles.taskButtons}>
-          <Pressable style={styles.smallButton} onPress={() => openEditModal(item)}>
-            <Ionicons name="create-outline" size={18} color={Colors.white} />
+          <Pressable
+            style={[styles.smallButton, { backgroundColor: themeColors.primary }]}
+            onPress={() => openEditModal(item)}
+          >
+            <Ionicons name="create-outline" size={18} color={themeColors.white} />
           </Pressable>
 
           <Pressable
-            style={[styles.smallButton, styles.deleteButton]}
-            onPress={() => deleteTask(item.id)}
+            style={[styles.smallButton, { backgroundColor: themeColors.danger }]}
+            onPress={() => confirmDeleteTask(item.id)}
           >
-            <Ionicons name="trash-outline" size={18} color={Colors.white} />
+            <Ionicons name="trash-outline" size={18} color={themeColors.white} />
           </Pressable>
         </View>
       </View>
@@ -176,7 +154,10 @@ export default function TasksScreen() {
             placeholderTextColor={themeColors.lightText}
           />
 
-          <Pressable style={styles.addButton} onPress={addTask}>
+          <Pressable
+            style={[styles.addButton, { backgroundColor: themeColors.primary }]}
+            onPress={handleAddTask}
+          >
             <Text style={styles.addButtonText}>Add Task</Text>
           </Pressable>
         </View>
@@ -229,13 +210,16 @@ export default function TasksScreen() {
 
               <View style={styles.modalButtons}>
                 <Pressable
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setModalVisible(false)}
+                  style={[styles.modalButton, { backgroundColor: themeColors.inactive }]}
+                  onPress={closeModal}
                 >
                   <Text style={styles.modalButtonText}>Cancel</Text>
                 </Pressable>
 
-                <Pressable style={styles.modalButton} onPress={saveEdit}>
+                <Pressable
+                  style={[styles.modalButton, { backgroundColor: themeColors.primary }]}
+                  onPress={saveEdit}
+                >
                   <Text style={styles.modalButtonText}>Save</Text>
                 </Pressable>
               </View>
@@ -279,14 +263,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   addButton: {
-    backgroundColor: Colors.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
   addButtonText: {
     fontFamily: 'poppins-bold',
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 15,
   },
   listContent: {
@@ -322,15 +305,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   smallButton: {
-    backgroundColor: Colors.info,
     width: 36,
     height: 36,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  deleteButton: {
-    backgroundColor: Colors.danger,
   },
   emptyText: {
     fontFamily: 'poppins-regular',
@@ -359,16 +338,12 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
-    backgroundColor: Colors.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  cancelButton: {
-    backgroundColor: '#6B7280',
-  },
   modalButtonText: {
     fontFamily: 'poppins-bold',
-    color: Colors.white,
+    color: '#FFFFFF',
   },
 });

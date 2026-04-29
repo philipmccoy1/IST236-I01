@@ -1,12 +1,14 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Colors from '../constants/colors';
 import { ThemeContext } from '../context/ThemeContext';
+import { AppDataContext } from '../context/AppDataContext';
 
 export default function FocusTimerScreen() {
   const { themeColors } = useContext(ThemeContext);
+  const { addFocusMinutes, totalFocusMinutes } = useContext(AppDataContext);
 
+  const [initialSeconds, setInitialSeconds] = useState(25 * 60);
   const [secondsLeft, setSecondsLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
 
@@ -21,11 +23,12 @@ export default function FocusTimerScreen() {
 
     if (isRunning && secondsLeft === 0) {
       setIsRunning(false);
+      addFocusMinutes(Math.round(initialSeconds / 60));
       Alert.alert('Session Complete', 'Nice job! Your focus session is finished.');
     }
 
     return () => clearInterval(interval);
-  }, [isRunning, secondsLeft]);
+  }, [isRunning, secondsLeft, initialSeconds, addFocusMinutes]);
 
   function formatTime(totalSeconds) {
     const minutes = Math.floor(totalSeconds / 60);
@@ -35,13 +38,15 @@ export default function FocusTimerScreen() {
   }
 
   function choosePreset(minutes) {
+    const newSeconds = minutes * 60;
     setIsRunning(false);
-    setSecondsLeft(minutes * 60);
+    setInitialSeconds(newSeconds);
+    setSecondsLeft(newSeconds);
   }
 
   function resetTimer() {
     setIsRunning(false);
-    setSecondsLeft(25 * 60);
+    setSecondsLeft(initialSeconds);
   }
 
   return (
@@ -53,26 +58,31 @@ export default function FocusTimerScreen() {
         </Text>
 
         <View style={[styles.timerCard, { backgroundColor: themeColors.card }]}>
-          <Text style={styles.timerText}>{formatTime(secondsLeft)}</Text>
+          <Text style={[styles.timerText, { color: themeColors.primary }]}>
+            {formatTime(secondsLeft)}
+          </Text>
           <Text style={[styles.timerLabel, { color: themeColors.lightText }]}>
             {isRunning ? 'Session in progress' : 'Ready to begin'}
           </Text>
         </View>
 
         <View style={styles.buttonRow}>
-          <Pressable style={styles.controlButton} onPress={() => setIsRunning(true)}>
+          <Pressable
+            style={[styles.controlButton, { backgroundColor: themeColors.primary }]}
+            onPress={() => setIsRunning(true)}
+          >
             <Text style={styles.controlButtonText}>Start</Text>
           </Pressable>
 
           <Pressable
-            style={[styles.controlButton, styles.pauseButton]}
+            style={[styles.controlButton, { backgroundColor: themeColors.warning }]}
             onPress={() => setIsRunning(false)}
           >
             <Text style={styles.controlButtonText}>Pause</Text>
           </Pressable>
 
           <Pressable
-            style={[styles.controlButton, styles.resetButton]}
+            style={[styles.controlButton, { backgroundColor: themeColors.inactive }]}
             onPress={resetTimer}
           >
             <Text style={styles.controlButtonText}>Reset</Text>
@@ -102,6 +112,15 @@ export default function FocusTimerScreen() {
           >
             <Text style={[styles.presetText, { color: themeColors.text }]}>45 Min</Text>
           </Pressable>
+        </View>
+
+        <View style={[styles.totalCard, { backgroundColor: themeColors.card }]}>
+          <Text style={[styles.totalTitle, { color: themeColors.text }]}>
+            Total Focus Minutes
+          </Text>
+          <Text style={[styles.totalValue, { color: themeColors.primary }]}>
+            {totalFocusMinutes}
+          </Text>
         </View>
       </View>
     </SafeAreaView>
@@ -136,7 +155,6 @@ const styles = StyleSheet.create({
   timerText: {
     fontFamily: 'poppins-bold',
     fontSize: 50,
-    color: Colors.primary,
   },
   timerLabel: {
     fontFamily: 'poppins-regular',
@@ -153,20 +171,13 @@ const styles = StyleSheet.create({
   controlButton: {
     flex: 1,
     minWidth: 95,
-    backgroundColor: Colors.primary,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  pauseButton: {
-    backgroundColor: Colors.warning,
-  },
-  resetButton: {
-    backgroundColor: '#6B7280',
-  },
   controlButtonText: {
     fontFamily: 'poppins-bold',
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 15,
   },
   sectionTitle: {
@@ -178,6 +189,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 10,
+    marginBottom: 20,
   },
   presetButton: {
     flex: 1,
@@ -187,5 +199,19 @@ const styles = StyleSheet.create({
   },
   presetText: {
     fontFamily: 'poppins-bold',
+  },
+  totalCard: {
+    borderRadius: 18,
+    padding: 18,
+    alignItems: 'center',
+  },
+  totalTitle: {
+    fontFamily: 'poppins-regular',
+    fontSize: 15,
+    marginBottom: 8,
+  },
+  totalValue: {
+    fontFamily: 'poppins-bold',
+    fontSize: 30,
   },
 });

@@ -1,6 +1,10 @@
 import React, { useCallback, useContext } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  DefaultTheme,
+  DarkTheme,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,8 +13,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import Colors from './constants/colors';
 import ThemeProvider, { ThemeContext } from './context/ThemeContext';
+import AppDataProvider, { AppDataContext } from './context/AppDataContext';
 import SplashScreenPage from './screens/SplashScreen';
 import HomeScreen from './screens/HomeScreen';
 import TasksScreen from './screens/TasksScreen';
@@ -18,11 +22,14 @@ import FocusTimerScreen from './screens/FocusTimerScreen';
 import ResourcesScreen from './screens/ResourcesScreen';
 import SettingsScreen from './screens/SettingsScreen';
 
+// Create the stack and tab navigators
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-SplashScreen.preventAutoHideAsync();
+// Keep the splash screen visible until everything loads
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
+// Bottom tab navigation for the main app screens
 function MainTabs() {
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 768;
@@ -32,11 +39,9 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: Colors.primary,
+        tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.inactive,
-        sceneStyle: {
-          backgroundColor: themeColors.background,
-        },
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           height: isLargeScreen ? 70 : 62,
           paddingTop: 6,
@@ -49,6 +54,8 @@ function MainTabs() {
           fontFamily: 'poppins-bold',
           fontSize: isLargeScreen ? 13 : 11,
         },
+
+        // Choose the tab icon for each screen
         tabBarIcon: ({ color, size }) => {
           let iconName = 'ellipse';
 
@@ -71,30 +78,58 @@ function MainTabs() {
   );
 }
 
+// Main app content after providers are loaded
 function AppContent() {
-  const { darkMode } = useContext(ThemeContext);
+  const { darkMode, themeColors, isThemeReady } = useContext(ThemeContext);
+  const { isDataReady } = useContext(AppDataContext);
 
+  // Load custom fonts
   const [fontsLoaded] = useFonts({
     'poppins-regular': require('./assets/fonts/Poppins-Regular.ttf'),
     'poppins-bold': require('./assets/fonts/Poppins-Bold.ttf'),
   });
 
+  // Hide the splash screen after fonts and data finish loading
   const onReady = useCallback(async () => {
-    if (fontsLoaded) {
+    if (fontsLoaded && isThemeReady && isDataReady) {
       await SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, isThemeReady, isDataReady]);
 
-  if (!fontsLoaded) {
+  // Do not show the app until everything is ready
+  if (!fontsLoaded || !isThemeReady || !isDataReady) {
     return null;
   }
 
+  // Choose the base navigation theme
+  const baseTheme = darkMode ? DarkTheme : DefaultTheme;
+
+  // Customize the navigation theme colors
+  const navigationTheme = {
+    ...baseTheme,
+    colors: {
+      ...baseTheme.colors,
+      primary: themeColors.primary,
+      background: themeColors.background,
+      card: themeColors.card,
+      text: themeColors.text,
+      border: themeColors.border,
+      notification: themeColors.secondary,
+    },
+  };
+
   return (
     <>
+      {/* Set the phone status bar style */}
       <StatusBar style={darkMode ? 'light' : 'dark'} />
-      <NavigationContainer onReady={onReady}>
+
+      {/* Navigation container for the full app */}
+      <NavigationContainer theme={navigationTheme} onReady={onReady}>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {/* Splash screen shows first */}
           <Stack.Screen name="Splash" component={SplashScreenPage} />
+
+          {/* Main tab screens load after splash */}
           <Stack.Screen name="MainTabs" component={MainTabs} />
         </Stack.Navigator>
       </NavigationContainer>
@@ -102,11 +137,16 @@ function AppContent() {
   );
 }
 
+// Wrap the app with providers
 export default function App() {
   return (
     <SafeAreaProvider>
+      {/* Theme settings for the full app */}
       <ThemeProvider>
-        <AppContent />
+        {/* App data like tasks, resources, and timer info */}
+        <AppDataProvider>
+          <AppContent />
+        </AppDataProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useState } from 'react';
+import React, { useContext } from 'react';
 import {
   View,
   Text,
@@ -8,25 +8,21 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Colors from '../constants/colors';
 import { ThemeContext } from '../context/ThemeContext';
+import { themeChoices } from '../constants/colors';
 
 export default function SettingsScreen() {
-  const { darkMode, setDarkMode, themeColors } = useContext(ThemeContext);
-
-  const [notifications, setNotifications] = useState(true);
-  const [dailyReminder, setDailyReminder] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState('Blue');
-
-  const themeOptions = [
-    { name: 'Blue', color: Colors.primary },
-    { name: 'Purple', color: Colors.secondary },
-    { name: 'Green', color: Colors.accent },
-  ];
-
-  const activeTheme = useMemo(() => {
-    return themeOptions.find((theme) => theme.name === selectedTheme);
-  }, [selectedTheme]);
+  const {
+    darkMode,
+    setDarkMode,
+    notifications,
+    setNotifications,
+    dailyReminder,
+    setDailyReminder,
+    selectedTheme,
+    setSelectedTheme,
+    themeColors,
+  } = useContext(ThemeContext);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
@@ -42,28 +38,32 @@ export default function SettingsScreen() {
             <Switch
               value={darkMode}
               onValueChange={setDarkMode}
-              trackColor={{ false: themeColors.border, true: Colors.primary }}
-              thumbColor={Colors.white}
+              trackColor={{ false: themeColors.border, true: themeColors.primary }}
+              thumbColor={themeColors.white}
             />
           </View>
 
           <View style={styles.settingRow}>
-            <Text style={[styles.settingText, { color: themeColors.text }]}>Notifications</Text>
+            <Text style={[styles.settingText, { color: themeColors.text }]}>
+              Notifications
+            </Text>
             <Switch
               value={notifications}
               onValueChange={setNotifications}
-              trackColor={{ false: themeColors.border, true: Colors.primary }}
-              thumbColor={Colors.white}
+              trackColor={{ false: themeColors.border, true: themeColors.primary }}
+              thumbColor={themeColors.white}
             />
           </View>
 
           <View style={styles.settingRow}>
-            <Text style={[styles.settingText, { color: themeColors.text }]}>Daily Reminder</Text>
+            <Text style={[styles.settingText, { color: themeColors.text }]}>
+              Daily Reminder
+            </Text>
             <Switch
               value={dailyReminder}
               onValueChange={setDailyReminder}
-              trackColor={{ false: themeColors.border, true: Colors.primary }}
-              thumbColor={Colors.white}
+              trackColor={{ false: themeColors.border, true: themeColors.primary }}
+              thumbColor={themeColors.white}
             />
           </View>
         </View>
@@ -72,7 +72,7 @@ export default function SettingsScreen() {
           <Text style={[styles.cardTitle, { color: themeColors.text }]}>Theme</Text>
 
           <View style={styles.themeRow}>
-            {themeOptions.map((theme) => (
+            {themeChoices.map((theme) => (
               <Pressable
                 key={theme.name}
                 style={[
@@ -93,7 +93,7 @@ export default function SettingsScreen() {
           </View>
 
           <Text style={[styles.previewText, { color: themeColors.lightText }]}>
-            Selected Theme: {activeTheme?.name}
+            Current Theme: {selectedTheme}
           </Text>
         </View>
 
@@ -104,7 +104,9 @@ export default function SettingsScreen() {
             StudySphere helps students manage tasks, use focus sessions, and save helpful study resources.
           </Text>
 
-          <Text style={[styles.infoText, { color: themeColors.lightText }]}>Version 1.0</Text>
+          <Text style={[styles.infoText, { color: themeColors.lightText }]}>
+            Version 1.0
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
